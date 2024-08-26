@@ -113,6 +113,7 @@ val group_names : re -> (string * int) list
 val exec
   :  ?pos:int (** Default: 0 *)
   -> ?len:int (** Default: -1 (until end of string) *)
+  -> ?partial:bool
   -> re
   -> string
   -> Group.t
@@ -835,3 +836,10 @@ val marked : Group.t -> Mark.t -> bool
 (** Same as {!Mark.all}. Deprecated *)
 val mark_set : Group.t -> Mark.Set.t
 [@@ocaml.deprecated "Use Mark.all"]
+
+
+module Utility : sig
+  val is_word_char:char->bool
+  val count_words:string->int
+end
+  

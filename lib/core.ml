@@ -27,6 +27,8 @@ let rec iter n f v = if n = 0 then v else iter (n - 1) f (f v)
 let unknown = -2
 let break = -3
 
+let max_group_count = 100
+
 type match_info =
   | Match of Group.t
   | Failed
@@ -344,7 +346,7 @@ let match_str ~groups ~partial re s ~pos ~len =
     ; positions =
         (if groups
          then (
-           let n = Automata.Working_area.index_count re.tbl + 1 in
+           let n = min (Automata.Working_area.index_count re.tbl + 1) max_group_count in
            if n <= 10 then [| 0; 0; 0; 0; 0; 0; 0; 0; 0; 0 |] else Array.make n 0)
          else [||])
     }
@@ -568,12 +570,12 @@ let exec_internal name ?(pos = 0) ?(len = -1) ~partial ~groups re s =
   match_str ~groups ~partial re s ~pos ~len
 ;;
 
-let exec ?pos ?len re s =
-  match exec_internal "Re.exec" ?pos ?len ~groups:true ~partial:false re s with
+let exec ?pos ?len ?(partial=false) re s =
+  match exec_internal "Re.exec" ?pos ?len ~groups:true ~partial re s with
   | Match substr -> substr
+  | Running _ when partial -> raise Not_found
   | _ -> raise Not_found
 ;;
-
 let exec_opt ?pos ?len re s =
   match exec_internal "Re.exec_opt" ?pos ?len ~groups:true ~partial:false re s with
   | Match substr -> Some substr
@@ -920,6 +922,24 @@ Bounded repetition
 *)
 
 type groups = Group.t
+
+module Utility = struct
+  let is_word_char c =
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c = '_'
+
+  let count_words s =
+    let rec count in_word acc i =
+      if i >= String.length s then
+        acc
+      else if is_word_char s.[i] then
+        count true acc (i + 1)
+      else if in_word then
+        count false (acc + 1) (i + 1)
+      else
+        count false acc (i + 1)
+    in
+    count false 0 0
+end
 
 include Rlist
 include Ast
